@@ -22,12 +22,12 @@ RSpec.describe IdempotentActor do
   end
 
   context "basic usage" do
-    it "works" do
+    it "sets called to true" do
       result = TestActor.call
       expect(result.called).to be true
     end
 
-    it "works with state passed in" do
+    it "sets called to true and keeps the extra state" do
       result = TestActor.call(called: false, gaming: :moment)
       expect(result.called).to be true
       expect(result.gaming).to eq :moment
