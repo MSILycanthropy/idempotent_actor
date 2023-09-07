@@ -12,5 +12,5 @@ Style/StringLiteralsInInterpolation:
 Layout/LineLength:
   Max: 120
 
-Layout/BlockLength:
+Metrics/BlockLength:
   Max: 120

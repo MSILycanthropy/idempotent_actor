@@ -3,6 +3,7 @@
 require_relative "idempotent_actor/version"
 
 require "idempotent_actor/core"
+require "idempotent_actor/composable"
 
 # IdempotentActor
 module IdempotentActor
@@ -11,5 +12,6 @@ module IdempotentActor
 
   class Base
     include IdempotentActor::Core
+    include IdempotentActor::Composable
   end
 end

@@ -11,12 +11,20 @@ module IdempotentActor
 
     # Class methods
     module ClassMethods
-      def call(state = nil, **_args)
-        # TODO: Merge args into state
-        state = IdempotentActor::State.to_state(state)
+      def call(state = nil, **args)
+        state = IdempotentActor::State.to_state(state).merge(args)
 
         instance = new(state)
         instance.call
+
+        state
+      end
+
+      def recover(state = nil, **args)
+        state = IdempotentActor::State.to_state(state).merge(args)
+
+        instance = new(state)
+        instance.recover
 
         state
       end
@@ -29,11 +37,15 @@ module IdempotentActor
 
     def call; end
 
-    # TODO: Rename this
     def recover; end
 
-    def instance_call
+    # This lets us avoid the `super` call in the `call` method when we define it
+    def internal_call_do_not_use
       call
+    end
+
+    def internal_recover_do_not_use
+      recover
     end
 
     protected

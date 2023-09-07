@@ -21,6 +21,10 @@ module IdempotentActor
       "#<#{self.class.name} #{to_h.inspect}>"
     end
 
+    def merge(other)
+      self.class.new(to_h.merge(other.to_h))
+    end
+
     def success?
       !failure?
     end

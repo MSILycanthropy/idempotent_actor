@@ -77,4 +77,23 @@ RSpec.describe IdempotentActor::State do
       expect(state.errors).to eq(["foo"])
     end
   end
+
+  describe "#merge" do
+    it "works" do
+      state = described_class.new(foo: "bar")
+      other = described_class.new(baz: "qux")
+      merged = state.merge(other)
+      expect(merged).to be_a(described_class)
+      expect(merged.foo).to eq("bar")
+      expect(merged.baz).to eq("qux")
+    end
+
+    it "overwrites the original state" do
+      state = described_class.new(foo: "bar")
+      other = described_class.new(foo: "baz")
+      merged = state.merge(other)
+      expect(merged).to be_a(described_class)
+      expect(merged.foo).to eq("baz")
+    end
+  end
 end
