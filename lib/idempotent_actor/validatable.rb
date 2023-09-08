@@ -14,8 +14,8 @@ module IdempotentActor
         inputs[name] = { type: Array(type), optional: optional, default: default }
       end
 
-      def output(name, type:)
-        outputs[name] = { type: Array(type) }
+      def output(name, type:, optional: false, default: nil)
+        outputs[name] = { type: Array(type), optional: optional, default: default }
       end
 
       def inputs
@@ -36,7 +36,15 @@ module IdempotentActor
 
         return if failure?
 
-        call
+        result = call
+
+        return if failure?
+
+        default_outputs!
+        check_output_requirements!
+        check_output_types!
+
+        result
       end
 
       private
@@ -47,7 +55,23 @@ module IdempotentActor
 
           value = state.send(name)
 
-          state.send("#{name}=", input[:default]) if value.nil?
+          default = input[:default]
+          default_value = extract_value(default)
+
+          state.send("#{name}=", default_value) if value.nil?
+        end
+      end
+
+      def default_outputs!
+        self.class.outputs.each do |name, output|
+          next if output[:default].nil?
+
+          value = state.send(name)
+
+          default = output[:default]
+          default_value = extract_value(default)
+
+          state.send("#{name}=", default_value) if value.nil?
         end
       end
 
@@ -55,9 +79,19 @@ module IdempotentActor
         self.class.inputs.each do |name, input|
           value = state.send(name)
 
-          valid = input_required_and_present?(input, value)
+          valid = required_and_present?(input, value)
 
           errors << "Input #{name} is required" unless valid
+        end
+      end
+
+      def check_output_requirements!
+        self.class.outputs.each do |name, output|
+          value = state.send(name)
+
+          valid = required_and_present?(output, value)
+
+          errors << "Output #{name} is required" unless valid
         end
       end
 
@@ -65,31 +99,43 @@ module IdempotentActor
         self.class.inputs.each do |name, input|
           value = state.send(name)
 
-          valid = input_valid?(input, value)
+          valid = valid_type?(input, value)
 
           errors << "Input #{name} must be one of #{input[:type]}" unless valid
         end
       end
 
-      def input_required_and_present?(input, value)
-        optional = input[:optional]
-        optional_input = if optional.is_a?(Proc)
-                           optional.call(state).is_a?(TrueClass)
-                         else
-                           optional.is_a?(TrueClass)
-                         end
+      def check_output_types!
+        self.class.outputs.each do |name, output|
+          value = state.send(name)
 
-        return true if optional_input
+          valid = valid_type?(output, value)
+
+          errors << "Output #{name} must be one of #{output[:type]}" unless valid
+        end
+      end
+
+      def required_and_present?(options, value)
+        optional = options[:optional]
+        required = extract_value(optional).is_a?(TrueClass)
+
+        return true if required
 
         !value.nil?
       end
 
-      def input_valid?(input, value)
+      def valid_type?(input, value)
         return true if input[:optional] && value.nil?
 
         input[:type].any? do |type|
           value.is_a?(type)
         end
+      end
+
+      def extract_value(thing)
+        return thing unless thing.is_a?(Proc)
+
+        thing.call(state)
       end
     end
   end
