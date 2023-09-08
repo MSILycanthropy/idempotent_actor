@@ -6,13 +6,15 @@ class TestActor < IdempotentActor::Base
   end
 end
 
-class TestComposableActor < IdempotentActor::Base
-  run TestActor
-  run :funny_method
-  run ->(state) { state.among_us = :sus }
+class FalliableActor < IdempotentActor::Base
+  def call
+    fail!("Something went wrong")
+  end
+end
 
-  def funny_method
-    state.funny = { haha: 25 }
+class FalliableActorSetsErrors < IdempotentActor::Base
+  def call
+    errors << "Something went wrong"
   end
 end
 
@@ -34,21 +36,15 @@ RSpec.describe IdempotentActor do
     end
   end
 
-  context "composable usage" do
-    it "runs the actor" do
-      result = TestComposableActor.call
-      expect(result.called).to be true
+  context "faliable usage" do
+    it "sets success to false when calling fail!" do
+      result = FalliableActor.call
+      expect(result.success?).to be false
     end
 
-    it "runs the method" do
-      result = TestComposableActor.call
-      expect(result.funny).to be_a Hash
-      expect(result.funny[:haha]).to eq 25
-    end
-
-    it "runs the proc" do
-      result = TestComposableActor.call
-      expect(result.among_us).to eq :sus
+    it "sets success to false when setting errors" do
+      result = FalliableActorSetsErrors.call
+      expect(result.success?).to be false
     end
   end
 end
